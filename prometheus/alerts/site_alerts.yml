@@ -1,0 +1,58 @@
+groups:
+  - name: site_monitoring
+    interval: 5m
+    rules:
+      # Проверка доступности сайта (200 OK)
+      - alert: SiteIsDown
+        expr: probe_success == 0
+        for: 5m
+        labels:
+          severity: critical
+          type: http
+        annotations:
+          summary: "🚨 Сайт {{ $labels.instance }} недоступен!"
+          description: |
+            ❌ Сайт {{ $labels.instance }} не отвечает
+            Статус: DOWN
+            Время: {{ $value | humanizeDuration }}
+      
+      # Проверка медленного ответа
+      - alert: SiteIsSlow
+        expr: probe_duration_seconds > 5
+        for: 5m 
+        labels: 
+          severity: warning
+          type: perfomance 
+        annotations: 
+          summary: "⚠️ Сайт {{ $labels.instance }} медленно отвечает!"
+          description: |
+            ⚠️ Сайт {{ $labels.instance }} отвечает медленно
+            Время ответа: {{ $value | humanizeDuration }}
+      
+      # Проверка кода ответа 
+      - alert: WrongStatusCode
+        expr: probe_http_status_code != 200 
+        for: 5m 
+        labels: 
+          severity: warning 
+          type: http 
+        annotations: 
+          summary: "⚠️ Неправильный код ответа от {{ $labels.instance }}"
+          description: |
+            Получен код: {{ $value }}
+            Ожидался: 200
+            Сайт: {{ $labels.instance }}
+      
+      # Проверка SSL сертификата (истекает в течение 30 дней)
+      - alert: SSLCertificateExpiring
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1h
+        labels:
+          severity: warning
+          type: ssl
+        annotations:
+          summary: "🔒 SSL сертификат {{ $labels.instance }} истекает"
+          description: |
+            Сертификат истекает через {{ $value | humanizeDuration }}
+            Сайт: {{ $labels.instance }}
+

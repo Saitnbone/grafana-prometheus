@@ -1,0 +1,29 @@
+groups:
+  - name: test_alerts
+    rules: 
+      - alert: HighCPUUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 1m 
+        labels: 
+          severity: critical
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% (current value: {{ $value }}%)"
+        
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80
+        for: 1m 
+        labels: 
+          severity: critical
+        annotations:
+          summary: "High Memory usage detected"
+          description: "Memory usage is above 80% (current value: {{ $value }}%)"
+      
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "Service has been down for more than 1 minute"

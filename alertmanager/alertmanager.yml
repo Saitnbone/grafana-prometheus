@@ -1,0 +1,38 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ["alertname", "instance"]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: "telegram-bot" # получатель по умолчанию
+
+  routes:
+    # Критические алерты - отправляем сразу и часто
+    - match:
+        severity: critical
+      receiver: "telegram-bot"
+      group_wait: 5s # ждем 5 сек (вдруг еще алерты)
+      repeat_interval: 30m # повторяем каждые 30 мин
+
+    # Предупреждения - реже
+    - match:
+        severity: warning
+      receiver: "telegram-bot"
+      group_wait: 30s
+      repeat_interval: 2h # повторяем раз в 2 часа
+
+    # Алерты по HTTP - отдельно
+    - match:
+        type: http
+      receiver: "telegram-bot"
+      repeat_interval: 1h
+
+receivers:
+  - name: "telegram-bot"
+    webhook_configs:
+      - url: "http://host.docker.internal:3031/alerts/alert"
+        send_resolved: true
+        #  максимально алертов в одном запросе
+        max_alerts: 5

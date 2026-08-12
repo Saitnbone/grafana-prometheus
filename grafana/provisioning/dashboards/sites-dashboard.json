@@ -1,0 +1,288 @@
+{
+  "title": "Интерактивный мониторинг",
+  "uid": "interactive-monitoring",
+  "templating": {
+    "list": [
+      {
+        "name": "site",
+        "label": "Выберите сайт",
+        "type": "query",
+        "datasource": "Prometheus",
+        "query": "label_values(probe_success, instance)",
+        "multi": false,
+        "includeAll": false,
+        "refresh": 2,
+        "sort": 1,
+        "current": {
+          "text": "Все сайты",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "title": "Список сайтов для выбора",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "probe_success",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "color-background"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "DOWN", "color": "red"},
+                "1": {"text": "UP", "color": "green"}
+              }
+            }
+          ]
+        }
+      },
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0}
+    },
+    {
+      "title": "Статус: $site",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "probe_success{instance=~\"$site\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {"text": "DOWN", "color": "red"},
+                "1": {"text": "UP", "color": "green"}
+              }
+            }
+          ]
+        }
+      },
+      "gridPos": {"h": 3, "w": 6, "x": 0, "y": 4}
+    },
+    {
+      "title": "HTTP код: $site",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "probe_http_status_code{instance=~\"$site\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": ["lastNotNull"]
+        }
+      },
+      "gridPos": {"h": 3, "w": 6, "x": 6, "y": 4}
+    },
+    {
+      "title": "Доступность за 24ч: $site",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "avg_over_time(probe_success{instance=~\"$site\"}[24h]) * 100",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 99},
+              {"color": "green", "value": 99.9}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 3, "w": 6, "x": 12, "y": 4}
+    },
+    {
+      "title": "SSL (дней): $site",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "(probe_ssl_earliest_cert_expiry{instance=~\"$site\"} - time()) / 86400",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "days",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 30},
+              {"color": "green", "value": 60}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 3, "w": 6, "x": 18, "y": 4}
+    },
+    {
+      "title": "Время ответа: $site",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "probe_duration_seconds{instance=~\"$site\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 7}
+    },
+    {
+      "title": "HTTP статус код (история): $site",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "probe_http_status_code{instance=~\"$site\"}",
+          "legendFormat": "HTTP код"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 7}
+    },
+    {
+      "title": "CPU Usage сервера: $site",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{instance=~\"$site.*\"}[5m])) * 100)",
+          "legendFormat": "CPU"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 90}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 17}
+    },
+    {
+      "title": "Memory Usage сервера: $site",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "(node_memory_MemTotal_bytes{instance=~\"$site.*\"} - node_memory_MemAvailable_bytes{instance=~\"$site.*\"}) / node_memory_MemTotal_bytes{instance=~\"$site.*\"} * 100",
+          "legendFormat": "Memory"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 90}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 17}
+    },
+    {
+      "title": "Disk Usage сервера: $site",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "(node_filesystem_size_bytes{instance=~\"$site.*\",mountpoint=\"/\"} - node_filesystem_free_bytes{instance=~\"$site.*\",mountpoint=\"/\"}) / node_filesystem_size_bytes{instance=~\"$site.*\",mountpoint=\"/\"} * 100",
+          "legendFormat": "Disk"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 85}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 17}
+    },
+    {
+      "title": "Network Traffic сервера: $site",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(node_network_receive_bytes_total{instance=~\"$site.*\"}[5m])",
+          "legendFormat": "In"
+        },
+        {
+          "expr": "rate(node_network_transmit_bytes_total{instance=~\"$site.*\"}[5m])",
+          "legendFormat": "Out"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "lineWidth": 2
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 17}
+    }
+  ]
+}
